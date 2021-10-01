@@ -1,0 +1,4 @@
+(executable
+  (name array_like_test)
+  (modules array_like_test)
+  (libraries varray))

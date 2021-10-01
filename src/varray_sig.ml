@@ -1,0 +1,318 @@
+module type ARRAY = sig
+  (** The array will be used partially, with some elements in an undefined
+      state.  It is guaranteed that all operations always use valid indexes.
+  *)
+
+  type 'a t
+  (** The type of an array. *)
+
+  type 'a elt
+  (** The type of elements contained in the array. *)
+
+  val length : 'a t -> int
+  (** The size of the array; the maximum number of elements that can be stored
+      inside. *)
+
+  val empty : 'a t
+  (** An empty array of length [0]. *)
+
+  val create : int -> 'a t
+  (** [create n] returns an array of length [n]. Its elements are all in
+      an undefined state and will not be accessed by {! get} before being
+      defined by {! set} or {! blit}. *)
+
+  val get : 'a t -> int -> 'a elt
+  (** [get t i] returns the [i]th element of the array.
+      The elements are numbered from [0] to [length t - 1] and the index [i] is
+      always within this bound: this function be implemented as an
+      [unsafe_get]) if available. *)
+
+  val set : 'a t -> int -> 'a elt -> unit
+  (** [set t i v] modifies [t] in place, replacing the element at position [i]
+      with the value [v]. From now on, the element at this index is defined.
+      Again, this can be implemented as an [unsafe_set] without bound checking.
+  *)
+
+  val erase_at : 'a t -> int -> unit
+  (** [erase_at t i] resets the element at position [i]. It is an opportunity
+      to free the memory of the value [t.(i)]. From now on, the element is
+      undefined and this index will not be accessed again until a write is
+      done. *)
+
+  val blit : 'a t -> int -> 'a t -> int -> int -> unit
+  (** [blit src i dst j n] copies the elements from the range [i,i+n-1] from
+      the array [src] to the range [j,j+n-1] of the array [dst]. All the
+      elements copied from [src] are guaranteed to be in a defined state.
+      After this operation, the corresponding range in [dst] will be defined.
+      The copied ranges will be valid for each array. Special care is required
+      during the copy since [src] will often be the same array as [dst] and the
+      ranges can overlap. *)
+end
+
+module type TIER = sig
+  module Array : ARRAY
+  type 'a elt = 'a Array.elt
+  type 'a array = 'a Array.t
+
+  type 'a t
+
+  val depth : int
+
+  val empty : 'a t
+  val is_empty : 'a t -> bool
+
+  val create : capacity:int -> 'a t
+  val make : capacity:int -> int -> 'a elt -> 'a t
+  val init : capacity:int -> offset:int -> int -> (int -> 'a elt) -> 'a t
+
+  val length : 'a t -> int
+  val capacity : 'a t -> int
+  val root_capacity : 'a t -> int
+
+  val get : 'a t -> int -> 'a elt
+  val set : 'a t -> int -> 'a elt -> unit
+
+  val pop_front : 'a t -> 'a elt
+  val pop_back : 'a t -> 'a elt
+  val pop_at : 'a t -> int -> 'a elt
+
+  val push_front : 'a t -> 'a elt -> unit
+  val push_back : 'a t -> 'a elt -> unit
+
+  val is_full : 'a t -> bool
+
+  val push_front_pop_back : 'a t -> 'a elt -> 'a elt
+  val push_back_pop_front : 'a t -> 'a elt -> 'a elt
+
+  val insert_at : 'a t -> int -> 'a elt -> unit
+end
+
+module type VARRAY = sig
+  type 'a t
+  type 'a elt
+  type 'a array
+
+  val push_back : 'a t -> 'a elt -> unit
+  val pop_back : 'a t -> 'a elt
+
+  val push_front : 'a t -> 'a elt -> unit
+  val pop_front : 'a t -> 'a elt
+
+  val insert_at : 'a t -> int -> 'a elt -> unit
+  val pop_at : 'a t -> int -> 'a elt
+  val delete_at : 'a t -> int -> unit
+
+  val get : 'a t -> int -> 'a elt
+  val set : 'a t -> int -> 'a elt -> unit
+
+  val length : 'a t -> int
+  val make : int -> 'a elt -> 'a t
+  val init : int -> (int -> 'a elt) -> 'a t
+  val empty : unit -> 'a t
+  val is_empty : 'a t -> bool
+
+  module Tier : TIER with type 'a Array.elt = 'a elt
+                      and type 'a Array.t = 'a array
+end
+
+module type S = sig
+
+  type 'a t
+  (** The type of a varray. *)
+
+  type 'a elt
+  (** The type of elements stored in the varray. *)
+
+  (** {1 Dynamic collection} *)
+
+  val push_back : 'a t -> 'a elt -> unit
+  (** [push_back t x] adds a new element [x] at the end of the varray [t].
+      {b O(k)} amortized. *)
+
+  val pop_back : 'a t -> 'a elt
+  (** [pop_back t] removes and returns the rightmost element of the varray [t].
+      {b O(k)} amortized. *)
+
+  val push_front : 'a t -> 'a elt -> unit
+  (** [push_front t x] inserts a new element [x] at position [0], on the left
+      side of the varray [t]. Every previous element of [t] is shifted one to
+      the right. {b O(k)} amortized. *)
+
+  val pop_front : 'a t -> 'a elt
+  (** [pop_front t] removes and returns the leftmost element at position [0] of
+      the varray [t]. Every element of [t] is shifted one to the right.
+      {b O(k)} amortized. *)
+
+  val insert_at : 'a t -> int -> 'a elt -> unit
+  (** [insert_at t i x] inserts the element [x] at position [i] in the varray
+      [t]. Every element on the right of [i] is shifted by one.
+      {b O(k² × {%html:<sup>k</sup>%}√N)} *)
+
+  val pop_at : 'a t -> int -> 'a elt
+  (** [pop_at t i] removes and returns the element [t.(i)]. Every element on
+      the right of [i] is shifted by one to the left.
+      {b O(k² × {%html:<sup>k</sup>%}√N)} *)
+
+  val delete_at : 'a t -> int -> unit
+  (** [delete_at t i] removes the element [t.(i)]. Every element on the right
+      of [i] is shifted by one to the left.
+      {b O(k² × {%html:<sup>k</sup>%}√N)} *)
+
+  (** {1 Array} *)
+
+  val get : 'a t -> int -> 'a elt
+  (** [get t i] returns the [i]th element of the varray. Indexing starts from
+      [0] upto [length t - 1]. {b O(k)} *)
+
+  val set : 'a t -> int -> 'a elt -> unit
+  (** [set t i v] updates the value of the [i]th element to [x]. {b O(k)} *)
+
+  val length : 'a t -> int
+  (** [length t] returns the number of elements stored in [t]. *)
+
+  val make : int -> 'a elt -> 'a t
+  (** [make n x] returns a new varray of length [n], where all the elements are
+      initialized to the value [x]. *)
+
+  val init : int -> (int -> 'a elt) -> 'a t
+  (** [init n f] returns a new array of length [n], where the element at
+      position [i] is initialized to [f i]. *)
+
+  val empty : unit -> 'a t
+  (** [empty ()] is a new varray of length [0]. *)
+
+  val is_empty : 'a t -> bool
+  (** [is_empty t] returns true when the varray [t] has length [0]. *)
+
+  (** {1 Copying elements} *)
+
+  val append : 'a t -> 'a t -> 'a t
+  (** [append a b] returns a new varray by concatening the elements of [a] with
+      those of [b]. *)
+
+  val concat : 'a t list -> 'a t
+  (** [concat ts] returns a new varray whose elements are in the same order as
+      the values from the list of varrays [ts]. *)
+
+  val sub : 'a t -> int -> int -> 'a t
+  (** [sub t i n] returns a new varray of length [n], containing the elements
+      from the range [i, i+n-1] of the varray [t]. *)
+
+  val copy : 'a t -> 'a t
+  (** [copy t] returns a new varray containing the same sequence of
+      elements as [t]. *)
+
+  val fill : 'a t -> int -> int -> 'a elt -> unit
+  (** [fill t pos len x] modifies the varray [t] in place, by setting the value
+      [x] in the range [pos, pos + len - 1]. *)
+
+  val blit : 'a t -> int -> 'a t -> int -> int -> unit
+  (** [blit src src_pos dst dst_pos len] updates the varray [dst] in place, by
+      copying the range [src_pos, src_pos + len - 1] of values from [src] into
+      the destination range [dst_pos, dst_pos + len - 1] of [dst].
+  *)
+
+  (** {1 Traversals} *)
+
+  val iter : ('a elt -> unit) -> 'a t -> unit
+  (** [iter f t] calls the function [f] on all elements of [t], from left to
+      right. *)
+
+  val iteri : (int -> 'a elt -> unit) -> 'a t -> unit
+  (** [iteri f t] calls the function [f] on the indexes and elements of [t],
+      from left to right. *)
+
+  val map : ('a elt -> 'b elt) -> 'a t -> 'b t
+  (** [map f t] returns a new varray, whose elements are [f x] for each [x]
+      from the varray [t]. *)
+
+  val mapi : (int -> 'a elt -> 'b elt) -> 'a t -> 'b t
+  (** [mapi f t] returns a new varray, whose elements are [f i t.(i)] for each
+      index [i] of the varray [t]. *)
+
+  val fold_left : ('a -> 'b elt -> 'a) -> 'a -> 'b t -> 'a
+  (** [fold_left f z t] computes
+      [f (... (f (f z t.(0)) t.(1)) ...) t.(length t - 1)]. *)
+
+  val fold_right : ('a elt -> 'b -> 'b) -> 'a t -> 'b -> 'b
+  (** [fold_right f t z] computes
+      [f t.(0) (f t.(1) (... (f z t.(length t - 1))))]. *)
+
+  val fold_left_map : ('a -> 'b elt -> 'a * 'c elt) -> 'a -> 'b t -> 'a * 'c t
+  (** [fold_left_map] is a combination of [fold_left] and [map],
+      that threads an accumulator. *)
+
+  (** {1 Iterators on two varrays} *)
+
+  val iter2 : ('a elt -> 'b elt -> unit) -> 'a t -> 'b t -> unit
+  (** [iter2 f xs ys] calls [f xs.(i) ys.(i)] for each index [i] from left to
+      right. *)
+
+  val map2 : ('a elt -> 'b elt -> 'c elt) -> 'a t -> 'b t -> 'c t
+  (** [map2 f xs ys] returns a new varray whose [i]th element is
+      [f xs.(i) ys.(i)]. *)
+
+  (** {1 Predicates} *)
+
+  val for_all : ('a elt -> bool) -> 'a t -> bool
+  (** [for_all f t] holds when [f] is satisfied by all the elements of [t]. *)
+
+  val for_all2 : ('a elt -> 'b elt -> bool) -> 'a t -> 'b t -> bool
+  (** [for_all2 f xs ys] holds when [f xs.(i) ys.(i)] is satisfied by all
+      indexes [i]. *)
+
+  val exists : ('a elt -> bool) -> 'a t -> bool
+  (** [exists f t] holds when [f] is satisfied by one of the elements of
+      [t]. *)
+
+  val exists2 : ('a elt -> 'b elt -> bool) -> 'a t -> 'b t -> bool
+  (** [exists2 f xs ys] holds when an index [i] exists such that
+      [f xs.(i) ys.(i)] is satisfied. *)
+
+  val find_opt : ('a elt -> bool) -> 'a t -> 'a elt option
+  (** [find_opt f t] returns the leftmost element of [t] that satisfies [f]. *)
+
+  val find_map : ('a elt -> 'b option) -> 'a t -> 'b option
+  (** [find_map f t] returns the first result of [f] of the form [Some v]. *)
+
+  val mem : 'a elt -> 'a t -> bool
+  (** [mem x t] is true when [x] is equal [( = )] to an element of the varray
+      [t]. *)
+
+  val memq : 'a elt -> 'a t -> bool
+  (** Same as [mem], but [memq x t] uses physical equality [( == )] for
+      comparison. *)
+
+  (** {1 Sort} *)
+
+  val sort : ('a elt -> 'a elt -> int) -> 'a t -> unit
+  (** [sort cmp t] updates [t] inplace by sorting the elements in increasing
+      order according to [cmp]. *)
+
+  val stable_sort : ('a elt -> 'a elt -> int) -> 'a t -> unit
+  (** Same as [sort], but equal elements are kept in the same relative
+      order. *)
+
+  val fast_sort : ('a elt -> 'a elt -> int) -> 'a t -> unit
+  (** Same as [sort]. *)
+
+  (** {1 Conversions} *)
+
+  type 'a array
+  (** The array type used behind the scene as a backend by the varray. *)
+
+  val of_array : 'a array -> 'a t
+  (** [of_array arr] returns a new varray containing all the elements of the
+      array [arr]. *)
+
+  val to_array : 'a t -> 'a array
+  (** [to_array t] returns a new array containing all the elements of the
+      varray [t]. *)
+
+  val of_list : 'a elt list -> 'a t
+  (** [of_list xs] returns a new varray containing all the elements of the list
+      [xs]. *)
+
+  val to_list : 'a t -> 'a elt list
+  (** [to_list t] returns a list of all the elements of [t]. *)
+end

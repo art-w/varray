@@ -1,0 +1,5 @@
+(dirs src tests)
+
+(env
+ (release
+  (flags (:standard -noassert))))

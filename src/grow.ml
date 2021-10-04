@@ -23,8 +23,7 @@ module Make (V : Varray_sig.TIER)
     }
 
   let length t =
-    V.length ~lc:t.lc t.small
-    + V.length ~lc:(t.lc + 1) t.large
+    V.length t.small + V.length t.large
 
   let lc_for = function
     | n when n <= 0 -> 1
@@ -54,22 +53,20 @@ module Make (V : Varray_sig.TIER)
 
   let get t i =
     let lc = t.lc in
-    let length_small = V.length ~lc t.small in
-    match i - length_small with
+    match i - V.length t.small with
     | j when i >= 0 && j < 0 ->
         V.get ~lc t.small i
-    | j when j >= 0 && j < V.length ~lc:(lc + 1) t.large ->
+    | j when j >= 0 && j < V.length t.large ->
         V.get ~lc:(lc + 1) t.large j
     | _ ->
         invalid_arg "index out of bounds"
 
   let set t i x =
     let lc = t.lc in
-    let length_small = V.length ~lc t.small in
-    match i - length_small with
+    match i - V.length t.small with
     | j when i >= 0 && j < 0 ->
         V.set ~lc t.small i x
-    | j when j >= 0 && j < V.length ~lc:(lc + 1) t.large ->
+    | j when j >= 0 && j < V.length t.large ->
         V.set ~lc:(lc + 1) t.large j x
     | _ ->
         invalid_arg "index out of bounds"
@@ -110,7 +107,7 @@ module Make (V : Varray_sig.TIER)
 
   let insert_at t i x =
     incr_capacity t ;
-    match i - V.length ~lc:t.lc t.small with
+    match i - V.length t.small with
     | j when j <= 0 ->
         V.insert_at ~lc:t.lc t.small i x ;
         incr_capacity t
@@ -143,7 +140,7 @@ module Make (V : Varray_sig.TIER)
 
   let pop_at t i =
     decr_capacity t ;
-    match i - V.length ~lc:t.lc t.small with
+    match i - V.length t.small with
     | j when j < 0 ->
         let x = V.pop_at ~lc:t.lc t.small i in
         decr_capacity t ;

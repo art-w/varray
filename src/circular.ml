@@ -25,7 +25,7 @@ end
 
   let depth = 1
 
-  let length ~lc:_ t = t.length
+  let length t = t.length
 
   let is_empty t = t.length = 0
 

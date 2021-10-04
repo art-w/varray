@@ -65,7 +65,7 @@ module type TIER = sig
   val make : lc:int -> int -> 'a elt -> 'a t
   val init : lc:int -> offset:int -> int -> (int -> 'a elt) -> 'a t
 
-  val length : lc:int -> 'a t -> int
+  val length : 'a t -> int
   val capacity : lc:int -> 'a t -> int
   val root_capacity : lc:int -> 'a t -> int
 

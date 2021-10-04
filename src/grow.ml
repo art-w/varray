@@ -18,6 +18,7 @@ module Make (V : Varray_sig.TIER)
 
   type 'a t =
     { mutable lc : int
+    ; mutable protected : bool
     ; mutable small : 'a V.t
     ; mutable large : 'a V.t
     }
@@ -31,6 +32,7 @@ module Make (V : Varray_sig.TIER)
 
   let empty () =
     { lc = 0
+    ; protected = false
     ; small = V.create ~capacity:1
     ; large = V.empty
     }
@@ -40,6 +42,7 @@ module Make (V : Varray_sig.TIER)
   let make n x =
     let lc = lc_for n in
     { lc
+    ; protected = false
     ; small = V.make ~lc n x
     ; large = V.empty
     }
@@ -47,9 +50,24 @@ module Make (V : Varray_sig.TIER)
   let init n f =
     let lc = lc_for n in
     { lc
+    ; protected = false
     ; small = V.init ~lc ~offset:0 n f
     ; large = V.empty
     }
+
+  let protect t f =
+    if t.protected
+    then f ()
+    else begin
+      t.protected <- true ;
+      match f () with
+      | v -> t.protected <- false ; v
+      | exception e -> t.protected <- false ; raise e
+    end
+
+  let check_protection t =
+    if t.protected
+    then failwith "Varray modification during protected traversal"
 
   let get t i =
     let lc = t.lc in
@@ -106,6 +124,7 @@ module Make (V : Varray_sig.TIER)
     end
 
   let insert_at t i x =
+    check_protection t ;
     incr_capacity t ;
     match i - V.length t.small with
     | j when j <= 0 ->
@@ -139,6 +158,7 @@ module Make (V : Varray_sig.TIER)
     end
 
   let pop_at t i =
+    check_protection t ;
     decr_capacity t ;
     match i - V.length t.small with
     | j when j < 0 ->
@@ -151,6 +171,7 @@ module Make (V : Varray_sig.TIER)
   let delete_at t i = ignore (pop_at t i)
 
   let push_back t x =
+    check_protection t ;
     incr_capacity t ;
     let lc = t.lc in
     if V.is_empty t.large
@@ -158,18 +179,21 @@ module Make (V : Varray_sig.TIER)
     else V.push_back ~lc:(lc + 1) t.large x
 
   let push_front t x =
+    check_protection t ;
     incr_capacity t ;
     let lc = t.lc in
     V.push_front ~lc t.small x ;
     incr_capacity t
 
   let pop_front t =
+    check_protection t ;
     decr_capacity t ;
     let x = V.pop_front ~lc:t.lc t.small in
     decr_capacity t ;
     x
 
   let pop_back t =
+    check_protection t ;
     decr_capacity t ;
     if V.is_empty t.large
     then V.pop_back ~lc:t.lc t.small

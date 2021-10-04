@@ -59,11 +59,13 @@ module Make (Arg : Varray_sig.VARRAY)
         result
 
   let iter f t =
+    protect t @@ fun () ->
     for i = 0 to length t - 1 do
       f (get t i)
     done
 
   let iteri f t =
+    protect t @@ fun () ->
     for i = 0 to length t - 1 do
       f i (get t i)
     done
@@ -78,6 +80,8 @@ module Make (Arg : Varray_sig.VARRAY)
         done ;
         r
 
+  let map f t = protect t (fun () -> map f t)
+
   let mapi f t = match length t with
     | 0 -> empty ()
     | n ->
@@ -88,6 +92,8 @@ module Make (Arg : Varray_sig.VARRAY)
         done ;
         r
 
+  let mapi f t = protect t (fun () -> mapi f t)
+
   let fold_left f z t =
     let acc = ref z in
     for i = 0 to length t - 1 do
@@ -95,12 +101,16 @@ module Make (Arg : Varray_sig.VARRAY)
     done ;
     !acc
 
+  let fold_left f z t = protect t (fun () -> fold_left f z t)
+
   let fold_right f t z =
     let acc = ref z in
     for i = length t - 1 downto 0 do
       acc := f (get t i) !acc
     done ;
     !acc
+
+  let fold_right f t z = protect t (fun () -> fold_right f t z)
 
   let fold_left_map f z t = match length t with
     | 0 -> z, empty ()
@@ -115,12 +125,17 @@ module Make (Arg : Varray_sig.VARRAY)
         done ;
         !acc, r
 
+  let fold_left_map f z t = protect t (fun () -> fold_left_map f z t)
+
   let iter2 f xs ys =
     let n, ys_len = length xs, length ys in
     if n <> ys_len then invalid_arg "Varray.iter2" ;
     for i = 0 to n - 1 do
       f (get xs i) (get ys i)
     done
+
+  let iter2 f xs ys =
+    protect xs (fun () -> protect ys (fun () -> iter2 f xs ys))
 
   let map2 f xs ys =
     let n, ys_len = length xs, length ys in
@@ -137,6 +152,9 @@ module Make (Arg : Varray_sig.VARRAY)
       done ;
       t
     end
+
+  let map2 f xs ys =
+    protect xs (fun () -> protect ys (fun () -> map2 f xs ys))
 
   exception Abort
 

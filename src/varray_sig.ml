@@ -110,6 +110,8 @@ module type VARRAY = sig
   val empty : unit -> 'a t
   val is_empty : 'a t -> bool
 
+  val protect : 'a t -> (unit -> 'b) -> 'b
+
   module Tier : TIER with type 'a Array.elt = 'a elt
                       and type 'a Array.t = 'a array
 end
@@ -170,6 +172,16 @@ module type S = sig
       {b O(k² × {%html:<sup>k</sup>%}√N)}
 
       @raise Invalid_arg if [i] is negative or larger than [length t - 1].
+  *)
+
+  (** {1 Freeze during traversals} *)
+
+  (** The previous operations all fail when the varray is being traversed: *)
+
+  val protect : 'a t -> (unit -> 'b) -> 'b
+  (** [protect t fn] marks [t] as protected during the execution of [fn ()].
+      All operations that would update the length of [t] by pushing or poping
+      elements will raise a [Failure] indicating that the traversal is unsafe.
   *)
 
   (** {1 Array} *)

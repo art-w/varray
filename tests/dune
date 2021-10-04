@@ -2,3 +2,8 @@
   (name array_like_test)
   (modules array_like_test)
   (libraries varray))
+
+(executable
+  (name bench_access)
+  (modules bench_access)
+  (libraries varray unix))

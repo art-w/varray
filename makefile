@@ -2,6 +2,10 @@
 test:
 	dune exec --force tests/array_like_test.exe
 
+.PHONY: bench_access
+bench_access:
+	dune exec --force --profile=release tests/bench_access.exe
+
 .PHONY: cover
 cover: clean
 	dune exec --force --instrument-with bisect_ppx tests/array_like_test.exe

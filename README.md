@@ -24,6 +24,13 @@ access into the array, but it also makes insertion and deletion faster!
 
 ![benchmark: inserting in the middle](https://art-w.github.io/varray/insert.png)
 
+You can expect the following constant factors on random access:
+
+|     | Array | Circular | Root | Root<sup>2</sup> | Root<sup>3</sup> | Root<sup>4</sup> | Root<sup>5</sup> |
+|----:|------:|---------:|-----:|-----------------:|-----------------:|-----------------:|-----------------:|
+| get |    1x |       3x |   8x |              17x |              27x |              31x |              33x |
+| set |    1x |       2x |   4x |               8x |              12x |              14x |              15x |
+
 The memory usage is competitive:
 
 - `push_front`, `push_back` and their respective `pop`, are *amortized*
@@ -37,10 +44,10 @@ The memory usage is competitive:
   growth is pretty tight. In particular for k=2, the O(√N) memory overhead is
   optimal if random access and `push_back` are to be O(1).
 
-If you only care about random access and resizing at the right end with
-`{push,pop}_back`, then you should prefer one of the existing libraries (in
-alphabetical order) : [BatDynArray] from Batteries, [CCVector] from Containers,
-[RES] as a standalone library or even [vector] as a single module.
+If you only care about fast random access and resizing at the right end with
+`{push,pop}_back`, then the pre-existing libraries provide smaller constant
+factors : (in alphabetical order) [BatDynArray] from Batteries, [CCVector] from
+Containers, [RES] as a standalone library or even [vector] as a single module.
 
 [Tiered Vectors: Efficient Dynamic Arrays for Rank-Based Sequences]: https://www.ics.uci.edu/~goodrich/pubs/wads99.pdf
 [Online Documentation]: https://art-w.github.io/varray/varray

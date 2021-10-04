@@ -62,29 +62,29 @@ module type TIER = sig
   val is_empty : 'a t -> bool
 
   val create : capacity:int -> 'a t
-  val make : capacity:int -> int -> 'a elt -> 'a t
-  val init : capacity:int -> offset:int -> int -> (int -> 'a elt) -> 'a t
+  val make : lc:int -> int -> 'a elt -> 'a t
+  val init : lc:int -> offset:int -> int -> (int -> 'a elt) -> 'a t
 
-  val length : 'a t -> int
-  val capacity : 'a t -> int
-  val root_capacity : 'a t -> int
+  val length : lc:int -> 'a t -> int
+  val capacity : lc:int -> 'a t -> int
+  val root_capacity : lc:int -> 'a t -> int
 
-  val get : 'a t -> int -> 'a elt
-  val set : 'a t -> int -> 'a elt -> unit
+  val get : lc:int -> 'a t -> int -> 'a elt
+  val set : lc:int -> 'a t -> int -> 'a elt -> unit
 
-  val pop_front : 'a t -> 'a elt
-  val pop_back : 'a t -> 'a elt
-  val pop_at : 'a t -> int -> 'a elt
+  val pop_front : lc:int -> 'a t -> 'a elt
+  val pop_back : lc:int -> 'a t -> 'a elt
+  val pop_at : lc:int -> 'a t -> int -> 'a elt
 
-  val push_front : 'a t -> 'a elt -> unit
-  val push_back : 'a t -> 'a elt -> unit
+  val push_front : lc:int -> 'a t -> 'a elt -> unit
+  val push_back : lc:int -> 'a t -> 'a elt -> unit
 
-  val is_full : 'a t -> bool
+  val is_full : lc:int -> 'a t -> bool
 
-  val push_front_pop_back : 'a t -> 'a elt -> 'a elt
-  val push_back_pop_front : 'a t -> 'a elt -> 'a elt
+  val push_front_pop_back : lc:int -> 'a t -> 'a elt -> 'a elt
+  val push_back_pop_front : lc:int -> 'a t -> 'a elt -> 'a elt
 
-  val insert_at : 'a t -> int -> 'a elt -> unit
+  val insert_at : lc:int -> 'a t -> int -> 'a elt -> unit
 end
 
 module type VARRAY = sig

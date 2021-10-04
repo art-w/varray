@@ -214,16 +214,6 @@ module Make (Arg : Varray_sig.VARRAY)
         List.iteri (fun i x -> set t i x) lst ;
         t
 
-  let get t i =
-    if i < 0 || i >= length t
-    then invalid_arg "index out of bounds" ;
-    Arg.get t i
-
-  let set t i x =
-    if i < 0 || i >= length t
-    then invalid_arg "index out of bounds" ;
-    Arg.set t i x
-
   let blit src src_pos dst dst_pos len =
     if src_pos < 0 || dst_pos < 0 || len < 0
     || src_pos + len > length src

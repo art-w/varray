@@ -17,42 +17,65 @@ module Make (V : Varray_sig.TIER)
   type 'a array = 'a V.array
 
   type 'a t =
-    { mutable small : 'a V.t
+    { mutable lc : int
+    ; mutable small : 'a V.t
     ; mutable large : 'a V.t
     }
 
-  let length t = V.length t.small + V.length t.large
+  let length t =
+    V.length ~lc:t.lc t.small
+    + V.length ~lc:(t.lc + 1) t.large
 
-  let capacity_for = function
+  let lc_for = function
     | n when n <= 0 -> 1
-    | n -> pow2 (log2 n /^ V.depth)
+    | n -> log2 n /^ V.depth
 
   let empty () =
-    { small = V.create ~capacity:1 ; large = V.empty }
+    { lc = 0
+    ; small = V.create ~capacity:1
+    ; large = V.empty
+    }
 
   let is_empty t = V.is_empty t.small && V.is_empty t.large
 
   let make n x =
-    let capacity = capacity_for n in
-    { small = V.make ~capacity n x ; large = V.empty }
+    let lc = lc_for n in
+    { lc
+    ; small = V.make ~lc n x
+    ; large = V.empty
+    }
 
   let init n f =
-    let capacity = capacity_for n in
-    { small = V.init ~capacity ~offset:0 n f ; large = V.empty }
+    let lc = lc_for n in
+    { lc
+    ; small = V.init ~lc ~offset:0 n f
+    ; large = V.empty
+    }
 
   let get t i =
-    let j = i - V.length t.small in
-    if j < 0
-    then V.get t.small i
-    else V.get t.large j
+    let lc = t.lc in
+    let length_small = V.length ~lc t.small in
+    match i - length_small with
+    | j when i >= 0 && j < 0 ->
+        V.get ~lc t.small i
+    | j when j >= 0 && j < V.length ~lc:(lc + 1) t.large ->
+        V.get ~lc:(lc + 1) t.large j
+    | _ ->
+        invalid_arg "index out of bounds"
 
   let set t i x =
-    let j = i - V.length t.small in
-    if j < 0
-    then V.set t.small i x
-    else V.set t.large j x
+    let lc = t.lc in
+    let length_small = V.length ~lc t.small in
+    match i - length_small with
+    | j when i >= 0 && j < 0 ->
+        V.set ~lc t.small i x
+    | j when j >= 0 && j < V.length ~lc:(lc + 1) t.large ->
+        V.set ~lc:(lc + 1) t.large j x
+    | _ ->
+        invalid_arg "index out of bounds"
 
   let do_swap t =
+    t.lc <- 1 + t.lc ;
     t.small <- t.large ;
     t.large <- V.empty
 
@@ -60,7 +83,7 @@ module Make (V : Varray_sig.TIER)
     if V.is_empty t.small && not (V.is_empty t.large)
     then do_swap t
 
-  let is_growing t = length t >= V.capacity t.small
+  let is_growing t = length t >= V.capacity ~lc:t.lc t.small
 
   let pow2_depth = pow2 V.depth
 
@@ -68,33 +91,34 @@ module Make (V : Varray_sig.TIER)
     swap t ;
     if is_growing t
     then begin
-      if V.length t.large > 0
+      if not (V.is_empty t.large)
       then begin
         assert (not (V.is_empty t.small)) ;
-        let tl = V.pop_back t.small in
-        V.push_front t.large tl ;
+        let lc = t.lc in
+        let tl = V.pop_back ~lc t.small in
+        let lc = t.lc + 1 in
+        V.push_front ~lc t.large tl ;
         if V.is_empty t.small
         then do_swap t
       end
       else begin
-        assert (V.length t.large = 0) ;
-        let tl = V.pop_back t.small in
-        let capacity = 2 * V.root_capacity t.small in
-        t.large <- V.make ~capacity 1 tl
+        let tl = V.pop_back ~lc:t.lc t.small in
+        let lc = 1 + t.lc in
+        t.large <- V.make ~lc 1 tl
       end
     end
 
-
   let insert_at t i x =
     incr_capacity t ;
-    match i - V.length t.small with
+    match i - V.length ~lc:t.lc t.small with
     | j when j <= 0 ->
-        V.insert_at t.small i x ;
+        V.insert_at ~lc:t.lc t.small i x ;
         incr_capacity t
     | j ->
-        V.insert_at t.large j x
+        V.insert_at ~lc:(t.lc + 1) t.large j x
 
-  let is_shrinking t = length t * pow2_depth < V.root_capacity t.small
+  let is_shrinking t =
+    length t * pow2_depth < V.capacity ~lc:t.lc t.small
 
   let decr_capacity t =
     swap t ;
@@ -102,51 +126,56 @@ module Make (V : Varray_sig.TIER)
     then begin
       if not (V.is_empty t.large)
       then begin
-        assert (not (V.is_full t.small)) ;
-        V.push_back t.small (V.pop_front t.large)
+        let lc = t.lc in
+        assert (not (V.is_full ~lc t.small)) ;
+        V.push_back ~lc t.small (V.pop_front ~lc:(lc + 1) t.large)
       end
-      else if not (V.is_empty t.small) && V.root_capacity t.small > 1
+      else if not (V.is_empty t.small) && t.lc > 1 (* V.root_capacity ~lc:t.lc t.small > 1 *)
       then begin
-        let capacity = V.root_capacity t.small /^ 2 in
-        let hd = V.pop_front t.small in
+        let lc = t.lc in
+        let hd = V.pop_front ~lc t.small in
+        let lc = t.lc - 1 in
+        t.lc <- lc ;
         t.large <- t.small ;
-        t.small <- V.make ~capacity 1 hd ;
+        t.small <- V.make ~lc 1 hd ;
       end
     end
 
   let pop_at t i =
     decr_capacity t ;
-    match i - V.length t.small with
+    match i - V.length ~lc:t.lc t.small with
     | j when j < 0 ->
-        let x = V.pop_at t.small i in
+        let x = V.pop_at ~lc:t.lc t.small i in
         decr_capacity t ;
         x
     | j ->
-        V.pop_at t.large j
+        V.pop_at ~lc:(t.lc + 1) t.large j
 
   let delete_at t i = ignore (pop_at t i)
 
   let push_back t x =
     incr_capacity t ;
+    let lc = t.lc in
     if V.is_empty t.large
-    then V.push_back t.small x
-    else V.push_back t.large x
+    then V.push_back ~lc t.small x
+    else V.push_back ~lc:(lc + 1) t.large x
 
   let push_front t x =
     incr_capacity t ;
-    V.push_front t.small x ;
+    let lc = t.lc in
+    V.push_front ~lc t.small x ;
     incr_capacity t
 
   let pop_front t =
     decr_capacity t ;
-    let x = V.pop_front t.small in
+    let x = V.pop_front ~lc:t.lc t.small in
     decr_capacity t ;
     x
 
   let pop_back t =
     decr_capacity t ;
     if V.is_empty t.large
-    then V.pop_back t.small
-    else V.pop_back t.large
+    then V.pop_back ~lc:t.lc t.small
+    else V.pop_back ~lc:(t.lc + 1) t.large
 
 end

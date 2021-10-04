@@ -145,37 +145,66 @@ module type S = sig
   val insert_at : 'a t -> int -> 'a elt -> unit
   (** [insert_at t i x] inserts the element [x] at position [i] in the varray
       [t]. Every element on the right of [i] is shifted by one.
-      {b O(k² × {%html:<sup>k</sup>%}√N)} *)
+      {b O(k² × {%html:<sup>k</sup>%}√N)}
+
+      - [insert_at t 0 x] is the same as [push_front t x]
+      - [insert_at t (length t) x] is the same as [push_back t x]
+
+      @raise Invalid_arg if [i] is negative or larger than [length t].
+  *)
 
   val pop_at : 'a t -> int -> 'a elt
   (** [pop_at t i] removes and returns the element [t.(i)]. Every element on
       the right of [i] is shifted by one to the left.
-      {b O(k² × {%html:<sup>k</sup>%}√N)} *)
+      {b O(k² × {%html:<sup>k</sup>%}√N)}
+
+      - [pop_at t 0] is the same as [pop_front t]
+      - [pop_at t (length t - 1)] is the same as [pop_back t]
+
+      @raise Invalid_arg if [i] is negative or larger than [length t - 1].
+  *)
 
   val delete_at : 'a t -> int -> unit
   (** [delete_at t i] removes the element [t.(i)]. Every element on the right
       of [i] is shifted by one to the left.
-      {b O(k² × {%html:<sup>k</sup>%}√N)} *)
+      {b O(k² × {%html:<sup>k</sup>%}√N)}
+
+      @raise Invalid_arg if [i] is negative or larger than [length t - 1].
+  *)
 
   (** {1 Array} *)
 
   val get : 'a t -> int -> 'a elt
   (** [get t i] returns the [i]th element of the varray. Indexing starts from
-      [0] upto [length t - 1]. {b O(k)} *)
+      [0] upto [length t - 1]. {b O(k)}
+
+      @raise Invalid_argument if [i] is negative
+      or larger than [length t - 1].
+  *)
 
   val set : 'a t -> int -> 'a elt -> unit
-  (** [set t i v] updates the value of the [i]th element to [x]. {b O(k)} *)
+  (** [set t i v] updates the value of the [i]th element to [x]. {b O(k)}
+
+      @raise Invalid_argument if [i] is negative
+      or larger than [length t - 1].
+  *)
 
   val length : 'a t -> int
-  (** [length t] returns the number of elements stored in [t]. *)
+  (** [length t] returns the number of elements stored in [t]. {b O(1)} *)
 
   val make : int -> 'a elt -> 'a t
   (** [make n x] returns a new varray of length [n], where all the elements are
-      initialized to the value [x]. *)
+      initialized to the value [x].
+
+      @raise Invalid_argument if [n] is negative.
+  *)
 
   val init : int -> (int -> 'a elt) -> 'a t
   (** [init n f] returns a new array of length [n], where the element at
-      position [i] is initialized to [f i]. *)
+      position [i] is initialized to [f i].
+
+      @raise Invalid_argument if [n] is negative.
+  *)
 
   val empty : unit -> 'a t
   (** [empty ()] is a new varray of length [0]. *)
@@ -195,7 +224,10 @@ module type S = sig
 
   val sub : 'a t -> int -> int -> 'a t
   (** [sub t i n] returns a new varray of length [n], containing the elements
-      from the range [i, i+n-1] of the varray [t]. *)
+      from the range [i, i+n-1] of the varray [t].
+
+      @raise Invalid_argument if the range [i, i + n - 1] is invalid for [t].
+  *)
 
   val copy : 'a t -> 'a t
   (** [copy t] returns a new varray containing the same sequence of
@@ -203,12 +235,17 @@ module type S = sig
 
   val fill : 'a t -> int -> int -> 'a elt -> unit
   (** [fill t pos len x] modifies the varray [t] in place, by setting the value
-      [x] in the range [pos, pos + len - 1]. *)
+      [x] in the range [pos, pos + len - 1].
+
+      @raise Invalid_argument if the range [pos, pos + len -1] is invalid.
+  *)
 
   val blit : 'a t -> int -> 'a t -> int -> int -> unit
   (** [blit src src_pos dst dst_pos len] updates the varray [dst] in place, by
       copying the range [src_pos, src_pos + len - 1] of values from [src] into
       the destination range [dst_pos, dst_pos + len - 1] of [dst].
+
+      @raise Invalid_argument if the ranges are invalid for either varray.
   *)
 
   (** {1 Traversals} *)
@@ -218,7 +255,7 @@ module type S = sig
       right. *)
 
   val iteri : (int -> 'a elt -> unit) -> 'a t -> unit
-  (** [iteri f t] calls the function [f] on the indexes and elements of [t],
+  (** [iteri f t] calls [f i t.(i)] on all the indexes [i] of [t],
       from left to right. *)
 
   val map : ('a elt -> 'b elt) -> 'a t -> 'b t
@@ -245,11 +282,17 @@ module type S = sig
 
   val iter2 : ('a elt -> 'b elt -> unit) -> 'a t -> 'b t -> unit
   (** [iter2 f xs ys] calls [f xs.(i) ys.(i)] for each index [i] from left to
-      right. *)
+      right.
+
+      @raise Invalid_argument if the two varrays have different lengths.
+  *)
 
   val map2 : ('a elt -> 'b elt -> 'c elt) -> 'a t -> 'b t -> 'c t
   (** [map2 f xs ys] returns a new varray whose [i]th element is
-      [f xs.(i) ys.(i)]. *)
+      [f xs.(i) ys.(i)].
+
+      @raise Invalid_argument if the two varrays have different lengths.
+  *)
 
   (** {1 Predicates} *)
 
@@ -258,7 +301,10 @@ module type S = sig
 
   val for_all2 : ('a elt -> 'b elt -> bool) -> 'a t -> 'b t -> bool
   (** [for_all2 f xs ys] holds when [f xs.(i) ys.(i)] is satisfied by all
-      indexes [i]. *)
+      indexes [i].
+
+      @raise Invalid_argument if the two varrays have different lengths.
+  *)
 
   val exists : ('a elt -> bool) -> 'a t -> bool
   (** [exists f t] holds when [f] is satisfied by one of the elements of
@@ -266,7 +312,10 @@ module type S = sig
 
   val exists2 : ('a elt -> 'b elt -> bool) -> 'a t -> 'b t -> bool
   (** [exists2 f xs ys] holds when an index [i] exists such that
-      [f xs.(i) ys.(i)] is satisfied. *)
+      [f xs.(i) ys.(i)] is satisfied.
+
+      @raise Invalid_argument if the two varrays have different lengths.
+  *)
 
   val find_opt : ('a elt -> bool) -> 'a t -> 'a elt option
   (** [find_opt f t] returns the leftmost element of [t] that satisfies [f]. *)

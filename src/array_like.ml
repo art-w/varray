@@ -4,7 +4,10 @@ module Make (Arg : Varray_sig.VARRAY)
 
   include Arg
 
-  let sub t pos len = init len (fun i -> get t (pos + i))
+  let sub t pos len =
+    if pos < 0 || len < 0 || pos + len > length t
+    then invalid_arg "Varray.sub" ;
+    init len (fun i -> get t (pos + i))
 
   let copy t = sub t 0 (length t)
 
@@ -122,7 +125,7 @@ module Make (Arg : Varray_sig.VARRAY)
   let map2 f xs ys =
     let n, ys_len = length xs, length ys in
     if n <> ys_len
-    then invalid_arg "Varray.iter2"
+    then invalid_arg "Varray.map2"
     else if n = 0
     then empty ()
     else begin
@@ -238,5 +241,13 @@ module Make (Arg : Varray_sig.VARRAY)
     if i < 0 || i > length t
     then invalid_arg "index out of bounds" ;
     insert_at t i
+
+  let make n x =
+    if n < 0 then invalid_arg "Varray.make" ;
+    make n x
+
+  let init n f =
+    if n < 0 then invalid_arg "Varray.init" ;
+    init n f
 
 end

@@ -32,15 +32,13 @@ module Make (V : Varray_sig.TIER)
 
   let depth = V.depth + 1
 
-  let root_capacity ~lc t = Buffer.root_capacity ~lc t.rows
-
   let sector_length ~lc = pow2 (lc * V.depth)
 
-  let capacity ~lc _ = pow2 (lc * depth)
+  let capacity ~lc = pow2 (lc * depth)
 
   let length t = t.length
 
-  let is_full ~lc t = length t = capacity ~lc t
+  let is_full ~lc t = length t = capacity ~lc
 
   let create ~capacity =
     { length = 0
@@ -103,11 +101,8 @@ module Make (V : Varray_sig.TIER)
     Buffer.set ~lc t.rows i row
 
   let initialize ~lc t =
-    if Buffer.capacity ~lc t.rows < pow2 lc
-    then begin
-      assert (Buffer.capacity ~lc t.rows = 0) ;
-      t.rows <- Buffer.create ~capacity:(pow2 lc)
-    end
+    assert (t.rows != Buffer.empty) ;
+    assert (Buffer.root_capacity t.rows = pow2 lc)
 
   let push_front_new ~lc t x =
     initialize ~lc t ;
@@ -126,7 +121,7 @@ module Make (V : Varray_sig.TIER)
       else V.make ~lc 1 x
 
   let push_front ~lc t x =
-    assert (length t < capacity ~lc t) ;
+    assert (not (is_full ~lc t)) ;
     begin
       if is_empty t
       then if has_capacity t.first
@@ -151,7 +146,7 @@ module Make (V : Varray_sig.TIER)
     else create_child ~lc t last_idx x
 
   let push_back ~lc t x =
-    assert (length t < capacity ~lc t) ;
+    assert (not (is_full ~lc t)) ;
     let n = Buffer.length t.rows - 1 in
     begin
       if n < 0
@@ -184,7 +179,6 @@ module Make (V : Varray_sig.TIER)
     end
 
   let pop_back ~lc t =
-    assert (Buffer.length t.rows >= 0) ;
     t.length <- t.length - 1 ;
     let i = Buffer.length t.rows - 1 in
     if i < 0
@@ -210,9 +204,8 @@ module Make (V : Varray_sig.TIER)
          else begin
            let i = i - first_len in
            let lcd = lc * V.depth in
-           let sector_length = sector_length ~lc in
            let j = 1 + i lsr lcd in
-           let i = i land (sector_length - 1) in
+           let i = i land (pow2 lcd - 1) in
            j, i
          end
 
@@ -290,7 +283,7 @@ module Make (V : Varray_sig.TIER)
     y
 
   let insert_at ~lc t i x =
-    assert (length t < capacity ~lc t) ;
+    assert (not (is_full ~lc t)) ;
     if i = 0
     then push_front ~lc t x
     else begin

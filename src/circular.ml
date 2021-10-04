@@ -9,6 +9,7 @@ module Make (Arg : Varray_sig.ARRAY)
     val grow_head : lc:int -> 'a t -> unit
     val grow_tail : 'a t -> unit
     val unsafe_pop_back : lc:int -> 'a t -> unit
+    val root_capacity : 'a t -> int
 end
 = struct
 
@@ -28,11 +29,11 @@ end
 
   let is_empty t = t.length = 0
 
-  let capacity ~lc:_ t = Array.length t.buffer
+  let capacity ~lc = pow2 lc
 
-  let root_capacity = capacity
+  let root_capacity t = Array.length t.buffer
 
-  let is_full ~lc t = t.length = capacity ~lc t
+  let is_full ~lc t = t.length = capacity ~lc
 
   let set_length t len =
     assert (len >= 0) ;
@@ -52,9 +53,7 @@ end
     }
 
   let make ~lc n x =
-    let capacity = pow2 lc in
-    assert (capacity > 0) ;
-    let buffer = Array.create capacity in
+    let buffer = Array.create (capacity ~lc) in
     for i = 0 to n - 1 do
       Array.set buffer i x
     done ;
@@ -64,9 +63,7 @@ end
     }
 
   let init ~lc ~offset n f =
-    let capacity = pow2 lc in
-    assert (capacity > 0) ;
-    let buffer = Array.create capacity in
+    let buffer = Array.create (capacity ~lc) in
     for i = 0 to n - 1 do
       let x = f (i + offset) in
       Array.set buffer i x
@@ -76,7 +73,7 @@ end
     ; buffer
     }
 
-  let index ~lc t i = (t.head + i) mod capacity ~lc t
+  let index ~lc t i = (t.head + i) land (capacity ~lc - 1)
   let index_last ~lc t = index ~lc t (t.length - 1)
 
   let get ~lc t i =
@@ -92,19 +89,19 @@ end
     if j <= tail
     then Array.blit t.buffer j t.buffer (j + 1) (tail - j)
     else begin
-      let cap = capacity ~lc t in
-      let last = t.buffer.(cap - 1) in
-      Array.blit t.buffer j t.buffer (j + 1) (cap - j - 1) ;
+      let cap = capacity ~lc - 1 in
+      let last = t.buffer.(cap) in
+      Array.blit t.buffer j t.buffer (j + 1) (cap - j) ;
       Array.blit t.buffer 0 t.buffer 1 tail ;
       t.buffer.(0) <- last
     end
 
   let shift_left ~lc t j =
     let head = t.head in
-    let cap = capacity ~lc t in
+    let cap = capacity ~lc in
     if j >= head
     then begin
-      let prev = (head - 1 + cap) mod cap in
+      let prev = (head - 1) land (cap - 1) in
       t.buffer.(prev) <- t.buffer.(head) ;
       Array.blit t.buffer (head + 1) t.buffer head (j - head)
     end
@@ -115,29 +112,29 @@ end
     end
 
   let head_left ~lc t =
-    let cap = capacity ~lc t in
-    t.head <- (t.head - 1 + cap) mod cap
+    let head = index ~lc t (- 1) in
+    t.head <- head
 
   let grow_tail t =
     t.length <- t.length + 1
 
   let grow_head ~lc t =
-    assert (t.length < capacity ~lc t) ;
+    assert (not (is_full ~lc t)) ;
     head_left ~lc t ;
     grow_tail t
 
   let push_front ~lc t x =
-    assert (t.length < capacity ~lc t) ;
+    assert (not (is_full ~lc t)) ;
     grow_head ~lc t ;
     t.buffer.(t.head) <- x
 
   let push_back ~lc t x =
-    assert (t.length < capacity ~lc t) ;
+    assert (not (is_full ~lc t)) ;
     grow_tail t ;
     t.buffer.(index_last ~lc t) <- x
 
   let make_room ~lc t i =
-    assert (t.length < capacity ~lc t) ;
+    assert (not (is_full ~lc t)) ;
     if 2 * i >= t.length
     then begin
       let j = index ~lc t i in
@@ -152,7 +149,7 @@ end
 
   let insert_at ~lc t i x =
     assert (i >= 0 && i <= t.length) ;
-    assert (t.length < capacity ~lc t) ;
+    assert (not (is_full ~lc t)) ;
     make_room ~lc t i ;
     set ~lc t i x
 
@@ -164,14 +161,15 @@ end
 
   let shrink_head ~lc t head =
     assert (t.length > 0) ;
-    Array.erase_at t.buffer head ;
-    t.head <- (head + 1) mod capacity ~lc t ;
+    assert (head = t.head) ;
+    Array.erase_at t.buffer t.head ;
+    t.head <- index ~lc t 1 ;
     t.length <- t.length - 1
 
   let shrink_next_tail ~lc t =
-    let cap = capacity ~lc t in
+    let cap = capacity ~lc in
     if t.length + 1 < cap
-    then let next = (t.head + t.length) mod cap in
+    then let next = (t.head + t.length) land (cap - 1) in
          Array.erase_at t.buffer next
 
   let unsafe_pop_back ~lc t =
@@ -186,7 +184,7 @@ end
     else if j < tail
     then Array.blit t.buffer (j + 1) t.buffer j (tail - j)
     else begin
-      let cap = capacity ~lc t in
+      let cap = capacity ~lc in
       Array.blit t.buffer (j + 1) t.buffer j (cap - 1 - j) ;
       t.buffer.(cap - 1) <- t.buffer.(0) ;
       Array.blit t.buffer 1 t.buffer 0 tail
@@ -200,7 +198,7 @@ end
     else if head < j
     then Array.blit t.buffer head t.buffer (head + 1) (j - head)
     else begin
-      let cap = capacity ~lc t in
+      let cap = capacity ~lc in
       let last = t.buffer.(cap - 1) in
       Array.blit t.buffer head t.buffer (head + 1) (cap - 1 - head) ;
       Array.blit t.buffer 0 t.buffer 1 j ;

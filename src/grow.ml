@@ -80,7 +80,7 @@ module Make (V : Varray_sig.TIER)
     if V.is_empty t.small && not (V.is_empty t.large)
     then do_swap t
 
-  let is_growing t = length t >= V.capacity ~lc:t.lc t.small
+  let is_growing t = length t >= V.capacity ~lc:t.lc
 
   let pow2_depth = pow2 V.depth
 
@@ -115,7 +115,7 @@ module Make (V : Varray_sig.TIER)
         V.insert_at ~lc:(t.lc + 1) t.large j x
 
   let is_shrinking t =
-    length t * pow2_depth < V.capacity ~lc:t.lc t.small
+    length t * pow2_depth < V.capacity ~lc:t.lc
 
   let decr_capacity t =
     swap t ;
@@ -127,7 +127,7 @@ module Make (V : Varray_sig.TIER)
         assert (not (V.is_full ~lc t.small)) ;
         V.push_back ~lc t.small (V.pop_front ~lc:(lc + 1) t.large)
       end
-      else if not (V.is_empty t.small) && t.lc > 1 (* V.root_capacity ~lc:t.lc t.small > 1 *)
+      else if t.lc > 1 && not (V.is_empty t.small)
       then begin
         let lc = t.lc in
         let hd = V.pop_front ~lc t.small in

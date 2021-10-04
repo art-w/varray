@@ -30,7 +30,13 @@ module Test (V : Varray.S with type 'a elt = 'a and type 'a array = 'a Array.t)
   let () = Random.self_init ()
 
   let random_array size =
-    let t = V.init size (fun _ -> Random.bits ()) in
+    let t = V.empty () in
+    for _ = 1 to size do
+      let x = Random.bits () in
+      if Random.bool ()
+      then V.push_front t x
+      else V.push_back t x
+    done ;
     let nb = 1_000 in
     for _ = 1 to nb do
       let x = Random.bits () in

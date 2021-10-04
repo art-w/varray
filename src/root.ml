@@ -109,12 +109,8 @@ module Make (V : Varray_sig.TIER)
     Buffer.grow_head ~lc t.rows ;
     let fst = Buffer.get ~lc t.rows 0 in
     assert (V.is_empty fst) ;
-    begin
-      if V.is_empty t.first
-      then ignore (Buffer.pop_front ~lc t.rows)
-      else Buffer.set ~lc t.rows 0 t.first
-    end ;
-    assert (V.is_empty fst) ;
+    assert (V.is_full ~lc t.first) ;
+    Buffer.set ~lc t.rows 0 t.first ;
     t.first <-
       if has_capacity fst
       then (V.push_front ~lc fst x ; fst)
@@ -127,10 +123,9 @@ module Make (V : Varray_sig.TIER)
       then if has_capacity t.first
            then V.push_front ~lc t.first x
            else t.first <- V.make ~lc 1 x
-      else let head = t.first in
-           if V.is_full ~lc head
+      else if V.is_full ~lc t.first
            then push_front_new ~lc t x
-           else V.push_front ~lc head x
+           else V.push_front ~lc t.first x
     end ;
     t.length <- t.length + 1 ;
     assert (V.length t.first > 0)
@@ -194,20 +189,21 @@ module Make (V : Varray_sig.TIER)
       v
     end
 
+  let indexes' ~lc t i =
+    let first = t.first in
+    let first_len = V.length first in
+    if i < first_len
+    then 0, i
+    else let i = i - first_len in
+         let lcd = lc * V.depth in
+         let j = 1 + i lsr lcd in
+         let i = i land (pow2 lcd - 1) in
+         j, i
+
   let indexes ~lc t i =
     if i = 0
     then 0, 0
-    else let first = t.first in
-         let first_len = V.length first in
-         if i < first_len
-         then 0, i
-         else begin
-           let i = i - first_len in
-           let lcd = lc * V.depth in
-           let j = 1 + i lsr lcd in
-           let i = i land (pow2 lcd - 1) in
-           j, i
-         end
+    else indexes' ~lc t i
 
   let buffer_get ~lc t j =
     if j = 0
@@ -216,13 +212,13 @@ module Make (V : Varray_sig.TIER)
 
   let get ~lc t i =
     assert (i >= 0 && i < length t) ;
-    let j, i = indexes ~lc t i in
+    let j, i = indexes' ~lc t i in
     let row = buffer_get ~lc t j in
     V.get ~lc row i
 
   let set ~lc t i x =
     assert (i >= 0 && i < length t) ;
-    let j, i = indexes ~lc t i in
+    let j, i = indexes' ~lc t i in
     let row = buffer_get ~lc t j in
     V.set ~lc row i x
 
@@ -304,7 +300,8 @@ module Make (V : Varray_sig.TIER)
       else if j > len
       then push_back ~lc t x
       else begin
-        let row = buffer_get ~lc t j in
+        let j = j - 1 in
+        let row = Buffer.get ~lc t.rows j in
         if 2 * j < len
         then begin
           let v =
@@ -318,9 +315,10 @@ module Make (V : Varray_sig.TIER)
           in
           let v = ref v in
           for k = j - 1 downto 0 do
-            let row = buffer_get ~lc t k in
+            let row = Buffer.get ~lc t.rows k in
             v := V.push_back_pop_front ~lc row !v
           done ;
+          v := V.push_back_pop_front ~lc t.first !v ;
           push_front ~lc t !v
         end
         else begin
@@ -334,8 +332,8 @@ module Make (V : Varray_sig.TIER)
             end
           in
           let v = ref v in
-          for k = j + 1 to len do
-            let row = buffer_get ~lc t k in
+          for k = j + 1 to len - 1 do
+            let row = Buffer.get ~lc t.rows k in
             v := V.push_front_pop_back ~lc row !v
           done ;
           push_back ~lc t !v

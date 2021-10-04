@@ -8,7 +8,6 @@ module Make (Arg : Varray_sig.ARRAY)
     val set_length : 'a t -> int -> unit
     val grow_head : lc:int -> 'a t -> unit
     val grow_tail : 'a t -> unit
-    val unsafe_pop_front : lc:int -> 'a t -> unit
     val unsafe_pop_back : lc:int -> 'a t -> unit
 end
 = struct
@@ -35,7 +34,9 @@ end
 
   let is_full ~lc t = t.length = capacity ~lc t
 
-  let set_length t len = t.length <- len
+  let set_length t len =
+    assert (len >= 0) ;
+    t.length <- len
 
   let empty =
     Obj.magic
@@ -157,20 +158,15 @@ end
 
 
   let shrink_tail t tail =
+    assert (t.length > 0) ;
     Array.erase_at t.buffer tail ;
     t.length <- t.length - 1
 
   let shrink_head ~lc t head =
+    assert (t.length > 0) ;
     Array.erase_at t.buffer head ;
     t.head <- (head + 1) mod capacity ~lc t ;
     t.length <- t.length - 1
-
-
-  let shrink_prev_head ~lc t =
-    let cap = capacity ~lc t in
-    if t.length + 1 < cap
-    then let prev = (t.head - 1 + cap) mod cap in
-         Array.erase_at t.buffer prev
 
   let shrink_next_tail ~lc t =
     let cap = capacity ~lc t in
@@ -178,14 +174,9 @@ end
     then let next = (t.head + t.length) mod cap in
          Array.erase_at t.buffer next
 
-  let unsafe_pop_front ~lc t =
-    shrink_prev_head ~lc t ;
-    let cap = capacity ~lc t in
-    t.head <- (t.head + 1) mod cap ;
-    t.length <- t.length - 1
-
   let unsafe_pop_back ~lc t =
     shrink_next_tail ~lc t ;
+    assert (t.length > 0) ;
     t.length <- t.length - 1
 
   let delete_right ~lc t j =

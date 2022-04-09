@@ -11,7 +11,9 @@
 (package
   (name varray)
   (synopsis "Resizable arrays with fast insertion/deletion")
-  (depends (ocaml (>= "4.08")))
+  (depends
+    (ocaml (>= "4.08"))
+    (monolith :with-test))
   (description
     "
 - O(1) constant time for random access `arr.(i)` and updates `arr.(i) <- v`

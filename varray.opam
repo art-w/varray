@@ -17,6 +17,7 @@ bug-reports: "https://github.com/art-w/varray/issues"
 depends: [
   "dune" {>= "2.8"}
   "ocaml" {>= "4.08"}
+  "monolith" {with-test}
   "odoc" {with-doc}
 ]
 build: [

@@ -7,3 +7,8 @@
   (name bench_access)
   (modules bench_access)
   (libraries varray unix))
+
+(executable
+  (name exhaust)
+  (modules exhaust)
+  (libraries varray monolith))

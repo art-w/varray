@@ -39,12 +39,11 @@ end
     assert (len >= 0) ;
     t.length <- len
 
-  let empty =
-    Obj.magic
-      { head = 0
-      ; length = 0
-      ; buffer = Array.empty
-      }
+  let empty () =
+    { head = 0
+    ; length = 0
+    ; buffer = Array.empty ()
+    }
 
   let create ~capacity =
     { head = 0

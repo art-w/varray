@@ -13,7 +13,7 @@ module type ARRAY = sig
   (** The size of the array; the maximum number of elements that can be stored
       inside. *)
 
-  val empty : 'a t
+  val empty : unit -> 'a t
   (** An empty array of length [0]. *)
 
   val create : int -> 'a t
@@ -58,7 +58,7 @@ module type TIER = sig
 
   val depth : int
 
-  val empty : 'a t
+  val empty : unit -> 'a t
   val is_empty : 'a t -> bool
 
   val create : capacity:int -> 'a t

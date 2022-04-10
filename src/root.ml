@@ -10,9 +10,9 @@ module Make (V : Varray_sig.TIER)
     type 'a t = 'a elt array
     let get = Array.unsafe_get
     let set = Array.unsafe_set
-    let empty : type a. a t = [| |]
-    let create n = Array.make n V.empty
-    let erase_at t i = set t i V.empty
+    let empty : type a. unit -> a t = fun () -> [| |]
+    let create n = Array.make n (V.empty ())
+    let erase_at t i = set t i (V.empty ())
   end)
 
   module Array = V.Array
@@ -25,8 +25,8 @@ module Make (V : Varray_sig.TIER)
     ; mutable rows : 'a Buffer.t
     }
 
-  let empty =
-    Obj.magic { length = 0 ; first = V.empty ; rows = Buffer.empty }
+  let empty () =
+    { length = 0 ; first = V.empty () ; rows = Buffer.empty () }
 
   let is_empty t = t.length = 0
 
@@ -42,7 +42,7 @@ module Make (V : Varray_sig.TIER)
 
   let create ~capacity =
     { length = 0
-    ; first = V.empty
+    ; first = V.empty ()
     ; rows = Buffer.create ~capacity
     }
 
@@ -94,14 +94,13 @@ module Make (V : Varray_sig.TIER)
     done ;
     t
 
-  let has_capacity child = child != V.empty
+  let has_capacity child = not (V.is_empty child)
 
   let create_child ~lc t i x =
     let row = V.make ~lc 1 x in
     Buffer.set ~lc t.rows i row
 
   let initialize ~lc t =
-    assert (t.rows != Buffer.empty) ;
     assert (Buffer.root_capacity t.rows = pow2 lc)
 
   let push_front_new ~lc t x =

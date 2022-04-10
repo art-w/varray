@@ -34,7 +34,7 @@ module Make (V : Varray_sig.TIER)
     { lc = 0
     ; protected = false
     ; small = V.create ~capacity:1
-    ; large = V.empty
+    ; large = V.empty ()
     }
 
   let is_empty t = V.is_empty t.small && V.is_empty t.large
@@ -44,7 +44,7 @@ module Make (V : Varray_sig.TIER)
     { lc
     ; protected = false
     ; small = V.make ~lc n x
-    ; large = V.empty
+    ; large = V.empty ()
     }
 
   let init n f =
@@ -52,7 +52,7 @@ module Make (V : Varray_sig.TIER)
     { lc
     ; protected = false
     ; small = V.init ~lc ~offset:0 n f
-    ; large = V.empty
+    ; large = V.empty ()
     }
 
   let protect t f =
@@ -92,7 +92,7 @@ module Make (V : Varray_sig.TIER)
   let do_swap t =
     t.lc <- 1 + t.lc ;
     t.small <- t.large ;
-    t.large <- V.empty
+    t.large <- V.empty ()
 
   let swap t =
     if V.is_empty t.small && not (V.is_empty t.large)

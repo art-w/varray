@@ -6,7 +6,7 @@ module Array_backend
   type 'a elt = 'a
   let get = Array.unsafe_get
   let set = Array.unsafe_set
-  let empty : type a. a t = [| |]
+  let empty : type a. unit -> a t = fun () -> [| |]
   let placeholder : type a. a elt = Obj.magic ()
   let create n = Array.make n placeholder
   let erase_at t i = set t i placeholder

@@ -145,7 +145,7 @@ module Make (V : Varray_sig.TIER)
     let n = Buffer.length t.rows - 1 in
     begin
       if n < 0
-      then if V.is_full ~lc t.first
+      then if not (has_capacity t.first) || V.is_full ~lc t.first
            then push_back_new ~lc t x
            else V.push_back ~lc t.first x
       else let tail = Buffer.get ~lc t.rows n in

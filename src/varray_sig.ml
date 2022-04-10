@@ -60,6 +60,7 @@ module type TIER = sig
 
   val empty : unit -> 'a t
   val is_empty : 'a t -> bool
+  val root_capacity : 'a t -> int
 
   val create : capacity:int -> 'a t
   val make : lc:int -> int -> 'a elt -> 'a t

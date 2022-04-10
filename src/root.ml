@@ -40,6 +40,8 @@ module Make (V : Varray_sig.TIER)
 
   let is_full ~lc t = length t = capacity ~lc
 
+  let root_capacity t = Buffer.root_capacity t.rows
+
   let create ~capacity =
     { length = 0
     ; first = V.empty ()
@@ -94,7 +96,7 @@ module Make (V : Varray_sig.TIER)
     done ;
     t
 
-  let has_capacity child = not (V.is_empty child)
+  let has_capacity child = V.root_capacity child > 0
 
   let create_child ~lc t i x =
     let row = V.make ~lc 1 x in

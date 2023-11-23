@@ -252,12 +252,17 @@ module Make (Arg : Varray_sig.VARRAY)
 
   let pop_at t i =
     if i < 0 || i >= length t
-    then invalid_arg "index out of bounds" ;
+    then invalid_arg "Varray.pop_at: index out of bounds" ;
     pop_at t i
+
+  let delete_at t i =
+    if i < 0 || i >= length t
+    then invalid_arg "Varray.delete_at: index out of bounds" ;
+    delete_at t i
 
   let insert_at t i =
     if i < 0 || i > length t
-    then invalid_arg "index out of bounds" ;
+    then invalid_arg "Varray.insert_at: index out of bounds" ;
     insert_at t i
 
   let make n x =

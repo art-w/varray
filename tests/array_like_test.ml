@@ -1,4 +1,3 @@
-
 let make_f () =
   let calls = ref [] in
   let f x =
@@ -333,8 +332,40 @@ module Test (V : Varray.S with type 'a elt = 'a and type 'a array = 'a Array.t)
       let _ = V.pop_back t in
       assert (V.to_array t = V.to_array t')
 
-
-
+  let () = test "index_out_of_bounds" @@ fun () ->
+    with_random_array @@ fun (t, _arr) ->
+      let is_invalid fn =
+        match fn () with
+        | exception Invalid_argument _ -> ()
+        | _ -> failwith "expected Invalid_argument exception"
+      in
+      is_invalid (fun () -> V.make (-1) 42) ;
+      is_invalid (fun () -> V.get t (-1)) ;
+      is_invalid (fun () -> V.get t (V.length t)) ;
+      is_invalid (fun () -> V.set t (-1) 42) ;
+      is_invalid (fun () -> V.set t (V.length t) 42) ;
+      is_invalid (fun () -> V.pop_at t (-1)) ;
+      is_invalid (fun () -> V.pop_at t (V.length t)) ;
+      is_invalid (fun () -> V.delete_at t (-1)) ;
+      is_invalid (fun () -> V.delete_at t (V.length t)) ;
+      is_invalid (fun () -> V.insert_at t (-1) 42) ;
+      is_invalid (fun () -> V.insert_at t (V.length t + 1) 42) ;
+      is_invalid (fun () -> V.blit t (-1) t 0 1) ;
+      is_invalid (fun () -> V.blit t 0 t (-1) 1) ;
+      is_invalid (fun () -> V.blit t 0 t 0 (-1)) ;
+      is_invalid (fun () -> V.blit t 0 t 0 (V.length t + 1)) ;
+      is_invalid (fun () -> V.blit t 1 t 0 (V.length t)) ;
+      is_invalid (fun () -> V.blit t 0 t 1 (V.length t)) ;
+      is_invalid (fun () -> V.sub t 1 (V.length t)) ;
+      is_invalid (fun () -> V.sub t (-1) 1) ;
+      is_invalid (fun () -> V.sub t (V.length t) 1) ;
+      is_invalid (fun () -> V.sub t (V.length t + 1) 0) ;
+      assert (V.length (V.sub t 0 0) = 0) ;
+      assert (V.length (V.sub t (V.length t) 0) = 0) ;
+      is_invalid (fun () -> V.fill t 1 (V.length t) 42) ;
+      is_invalid (fun () -> V.fill t (-1) 1 42) ;
+      is_invalid (fun () -> V.fill t (V.length t) 1 42) ;
+      is_invalid (fun () -> V.fill t (V.length t + 1) 0 42)
 end
 
 let header i = Printf.printf "------------ V%i ------------\n%!" i

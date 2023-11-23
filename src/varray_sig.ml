@@ -24,7 +24,7 @@ module type ARRAY = sig
   val get : 'a t -> int -> 'a elt
   (** [get t i] returns the [i]th element of the array.
       The elements are numbered from [0] to [length t - 1] and the index [i] is
-      always within this bound: this function be implemented as an
+      always within this bound: this function can be implemented as an
       [unsafe_get]) if available. *)
 
   val set : 'a t -> int -> 'a elt -> unit
@@ -153,7 +153,7 @@ module type S = sig
       - [insert_at t 0 x] is the same as [push_front t x]
       - [insert_at t (length t) x] is the same as [push_back t x]
 
-      @raise Invalid_arg if [i] is negative or larger than [length t].
+      @raise Invalid_argument if [i] is negative or larger than [length t].
   *)
 
   val pop_at : 'a t -> int -> 'a elt
@@ -164,7 +164,7 @@ module type S = sig
       - [pop_at t 0] is the same as [pop_front t]
       - [pop_at t (length t - 1)] is the same as [pop_back t]
 
-      @raise Invalid_arg if [i] is negative or larger than [length t - 1].
+      @raise Invalid_argument if [i] is negative or larger than [length t - 1].
   *)
 
   val delete_at : 'a t -> int -> unit
@@ -172,7 +172,7 @@ module type S = sig
       of [i] is shifted by one to the left.
       {b O(k² × {%html:<sup>k</sup>%}√N)}
 
-      @raise Invalid_arg if [i] is negative or larger than [length t - 1].
+      @raise Invalid_argument if [i] is negative or larger than [length t - 1].
   *)
 
   (** {1 Freeze during traversals} *)

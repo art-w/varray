@@ -158,7 +158,6 @@ module Make (V : Varray_sig.TIER)
     end
 
   let pop_at t i =
-    if i >= length t then invalid_arg "pop_at";
     check_protection t ;
     decr_capacity t ;
     match i - V.length t.small with

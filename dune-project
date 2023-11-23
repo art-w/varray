@@ -6,7 +6,7 @@
 (license MIT)
 (authors "Arthur Wendling")
 (maintainers "art.wendling@gmail.com")
-(version 0.1)
+(version 0.2)
 
 (package
   (name varray)
